@@ -25,123 +25,125 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA.
- * User: Administrator
- * Date: 12-9-4
- * Time: 下午4:22
- * To change this template use File | Settings | File Templates.
+ * Created with IntelliJ IDEA. User: Administrator Date: 12-9-4 Time: 下午4:22 To
+ * change this template use File | Settings | File Templates.
  */
 @Controller
 @RequestMapping("/testModule")
 public class TestModuleAction {
-    @Autowired
-    private TestModuleService testModuleService;
-    @Autowired
-    private MonitorService monitorService;
-    private static final Logger logger = LoggerFactory
-            .getLogger(TestModuleAction.class);
+	@Autowired
+	private TestModuleService testModuleService;
+	@Autowired
+	private MonitorService monitorService;
+	private static final Logger logger = LoggerFactory.getLogger(TestModuleAction.class);
 
-    @RequestMapping("/testDownLoad")
-    public ModelAndView testDownLoad(String pageNum, String pageSize,String keyForSearch) {
-        ModelAndView mv = new ModelAndView("testModule/downLoadTest.jsp");
-        List<Fdfs_file> list = testModuleService.getAllFileListByPage(pageNum, pageSize,keyForSearch);
-        int countDownLoadFile = testModuleService.getCountDownLoadFile(keyForSearch);
-        mv.addObject("testFileCount", countDownLoadFile);
-        if(!StringUtils.isNullOrEmpty(keyForSearch)){
-            mv.addObject("pageNum", "1");
-        }else{
-            mv.addObject("pageNum", pageNum);
-        }
-        mv.addObject("pageSize", pageSize);
-        mv.addObject("testFileList", list);
-        mv.addObject("keySearch",keyForSearch);
-        return mv;
-    }
+	@RequestMapping("/testDownLoad")
+	public ModelAndView testDownLoad(String pageNum, String pageSize, String keyForSearch) {
+		ModelAndView mv = new ModelAndView("testModule/downLoadTest.jsp");
+		List<Fdfs_file> list = testModuleService.getAllFileListByPage(pageNum, pageSize, keyForSearch);
+		int countDownLoadFile = testModuleService.getCountDownLoadFile(keyForSearch);
+		mv.addObject("testFileCount", countDownLoadFile);
+		if (!StringUtils.isNullOrEmpty(keyForSearch)) {
+			mv.addObject("pageNum", "1");
+		} else {
+			mv.addObject("pageNum", pageNum);
+		}
+		mv.addObject("pageSize", pageSize);
+		mv.addObject("testFileList", list);
+		mv.addObject("keySearch", keyForSearch);
+		return mv;
+	}
 
-    @ResponseBody
-    @RequestMapping("/toDownLoadToLocal")
-    public Message toDownLoadToLocal(HttpServletResponse response, String fileId, String srcIpAddr, String fileName) {
-        Message message = null;
-        String conf_filename = Thread.currentThread().getContextClassLoader()
-                .getResource("fdfs_client.conf").getPath();
-        try {
-            ClientGlobal.init(conf_filename);
+	@ResponseBody
+	@RequestMapping("/toDownLoadToLocal")
+	public Message toDownLoadToLocal(HttpServletResponse response, String fileId, String srcIpAddr, String fileName) {
+		Message message = null;
+		String conf_filename = Thread.currentThread().getContextClassLoader().getResource("fdfs_client.conf").getPath();
+		try {
+			ClientGlobal.init(conf_filename);
 
-            System.out.println("network_timeout="
-                    + ClientGlobal.g_network_timeout + "ms");
-            System.out.println("charset=" + ClientGlobal.g_charset);
-            TrackerClient tracker = new TrackerClient();
-            TrackerServer trackerServer = tracker.getConnection();
-            StorageServer storageServer = null;
-            StorageClient1 client = new StorageClient1(trackerServer,
-                    storageServer);
-            byte[] bytes = client.download_file1(fileId);
-            response.setHeader("content-disposition", "attachment;filename=" + fileName);
-            if (bytes != null) {
-                OutputStream os = response.getOutputStream();
-                os.write(bytes);
-                os.close();
-                Fdfs_file f = testModuleService.getFileByFileId(fileId);
-                if (f != null) {
+			System.out.println("network_timeout=" + ClientGlobal.g_network_timeout + "ms");
+			System.out.println("charset=" + ClientGlobal.g_charset);
+			TrackerClient tracker = new TrackerClient();
+			TrackerServer trackerServer = tracker.getConnection();
+			StorageServer storageServer = null;
+			StorageClient1 client = new StorageClient1(trackerServer, storageServer);
+			byte[] bytes = client.download_file1(fileId);
+			response.setHeader("content-disposition", "attachment;filename=" + fileName);
+			if (bytes != null) {
+				OutputStream os = response.getOutputStream();
+				os.write(bytes);
+				os.close();
+				Fdfs_file f = testModuleService.getFileByFileId(fileId);
+				if (f != null) {
 
-                    testModuleService.saveFastFile(f);
-                }
-            }
-        } catch (IOException e) {
-            logger.error("", e);
-        } catch (MyException e) {
-            logger.error("", e);
-        }
-        return message;
-    }
+					testModuleService.saveFastFile(f);
+				}
+			}
+		} catch (IOException e) {
+			logger.error("", e);
+		} catch (MyException e) {
+			logger.error("", e);
+		}
+		return message;
+	}
 
-    @RequestMapping("/accessFile")
-    public ModelAndView accessFile() throws IOException, MyException,JSchException {
-        ModelAndView mv = new ModelAndView("testModule/accessFileCharts.jsp");
-        List<Group> groups = monitorService.listGroupInfo();
-        mv.addObject("groups", groups);
+	@RequestMapping("/accessFile")
+	public ModelAndView accessFile() throws IOException, MyException, JSchException {
+		ModelAndView mv = new ModelAndView("testModule/accessFileCharts.jsp");
+		List<Group> groups = monitorService.listGroupInfo();
+		mv.addObject("groups", groups);
 
-        return mv;
-    }
+		return mv;
+	}
 
-    @ResponseBody
-    @RequestMapping("/tenFileDownLoad")
-    public Map<String, Object[]> tenFileDownLoad(String ip) {
-        Map<String, Object[]> map = new HashMap<String, Object[]>();
-        map = testModuleService.getAllFileListByTen(ip);
-        return map;
-    }
+	@ResponseBody
+	@RequestMapping("/tenFileDownLoad")
+	public Map<String, Object[]> tenFileDownLoad(String ip) {
+		Map<String, Object[]> map = new HashMap<String, Object[]>();
+		map = testModuleService.getAllFileListByTen(ip);
+		return map;
+	}
 
-    @ResponseBody
-    @RequestMapping("/allFilePie")
-    public List<Line> allFilePie(String ip) {
-        Line line = testModuleService.getAllFileListForPie(ip);
-        List<Line> fileList = new ArrayList<Line>();
-        fileList.add(line);
-        return fileList;
-    }
+	@ResponseBody
+	@RequestMapping("/allFilePie")
+	public List<Line> allFilePie(String ip) {
+		Line line = testModuleService.getAllFileListForPie(ip);
+		List<Line> fileList = new ArrayList<Line>();
+		fileList.add(line);
+		return fileList;
+	}
 
-    @RequestMapping("/downloadByApi")
-    public void downloadByApi(String fieldId,String fileName, HttpServletResponse response) throws IOException, MyException {
+	@RequestMapping("/downloadByApi")
+	public void downloadByApi(String fieldId, String fileName, HttpServletResponse response) throws IOException,
+			MyException {
 
-        ClientGlobal.init(Tools.getClassPath() + "fdfs_client.conf");
-        logger.info("network_timeout=" + ClientGlobal.g_network_timeout + "ms");
-        logger.info("charset=" + ClientGlobal.g_charset);
-        TrackerClient tracker = new TrackerClient();
-        TrackerServer trackerServer = tracker.getConnection();
-        if (trackerServer == null) {
-            return;
-        }
+		ClientGlobal.init(Tools.getClassPath() + "fdfs_client.conf");
+		logger.info("network_timeout=" + ClientGlobal.g_network_timeout + "ms");
+		logger.info("charset=" + ClientGlobal.g_charset);
+		TrackerClient tracker = new TrackerClient();
+		TrackerServer trackerServer = tracker.getConnection();
+		if (trackerServer == null) {
+			return;
+		}
 
-        StorageClient1 client = new StorageClient1(trackerServer, null);
-        byte[] bytes = client.download_file1(fieldId);
+		StorageClient1 client = new StorageClient1(trackerServer, null);
+		byte[] bytes = client.download_file1(fieldId);
 
-        logger.info("length:"+bytes.length);
+		if (bytes == null) {
+			logger.warn("downfile is null");
 
-        response.setHeader("Content-disposition",
-                "attachment; filename="+fileName);
-        OutputStream os = response.getOutputStream();
-        os.write(bytes);
-        os.close();
-    }
+			StringBuffer sb = new StringBuffer();
+			sb.append(fieldId).append("\r\n");
+			sb.append(fileName).append("\r\n");
+			sb.append("文件不存在，这个是原始fastdfs-zyc测试数据，这张表需要和具体的业务数据表关联起来才可以使用。");
+			bytes = sb.toString().getBytes();
+		} else {
+			logger.info("length:" + bytes.length);
+			response.setHeader("Content-disposition", "attachment; filename=" + fileName);
+		}
+		OutputStream os = response.getOutputStream();
+		os.write(bytes);
+		os.close();
+	}
 }
